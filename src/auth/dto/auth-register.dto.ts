@@ -1,16 +1,17 @@
-import { IsEmail, IsString, MinLength } from 'class-validator'
+import { IsEmail, IsString, Matches, MinLength } from 'class-validator'
 
 export class AuthRegisterDto {
-	@IsString()
-	@MinLength(3, {
-		message: 'Имя пользователя должно содержать минимум 3 символа',
-	})
-	username: string
+  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @MinLength(3, {
+    message: 'Имя пользователя должно содержать минимум 3 символа',
+  })
+  @Matches(/^[^\d+]/, { message: 'Некорректное имя пользователя' })
+  username: string
 
-	@IsEmail()
-	email: string
+  @IsEmail({}, { message: 'Некорректный формат почты' })
+  email: string
 
-	@IsString()
-	@MinLength(6, { message: 'Пароль должен содержать минимум 6 символов' })
-	password: string
+  @IsString({ message: 'Пароль должен быть строкой' })
+  @MinLength(6, { message: 'Пароль должен содержать минимум 6 символов' })
+  password: string
 }

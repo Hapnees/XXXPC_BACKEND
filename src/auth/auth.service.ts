@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable } from '@nestjs/common'
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import { PrismaService } from 'src/prisma/prisma.service'
@@ -6,112 +11,153 @@ import { AuthRegisterDto } from './dto/auth-register.dto'
 import * as bcrypt from 'bcrypt'
 import { Tokens } from './types/token.type'
 import { AuthLoginDto } from './dto/auth-login.dto'
+import { AuthResponse } from './types/auth-response'
+import { LogoutResponse } from './types/logout-response'
+import { Role } from '@prisma/client'
 
 @Injectable()
 export class AuthService {
-	constructor(
-		private readonly prisma: PrismaService,
-		private readonly config: ConfigService,
-		private readonly jwt: JwtService
-	) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+    private readonly jwt: JwtService
+  ) {}
 
-	async refreshTokens(userId: number, rt: string): Promise<Tokens> {
-		const user = await this.prisma.user.findUnique({ where: { id: userId } })
+  async loginAdmin(dto: AuthLoginDto) {
+    const admins = await this.prisma.user.findMany({
+      where: { email: dto.email, role: Role.ADMIN },
+    })
 
-		if (!user) throw new ForbiddenException('Пользователь не найден')
+    if (!admins.length) throw new NotFoundException('Администратор не найден')
 
-		const isValidRt = await bcrypt.compare(rt, user.hashedRt)
+    const admin = admins[0]
 
-		if (!isValidRt) throw new ForbiddenException('Ошибка токена')
+    const isValidPassword = await bcrypt.compare(dto.password, admin.hash)
 
-		const tokens = await this.getTokens(user.id, user.email)
-		await this.updateRtHash(user.id, tokens.refreshToken)
+    if (!isValidPassword) throw new ForbiddenException('Неверный пароль')
 
-		return tokens
-	}
+    const tokens = await this.getTokens(admin.id, admin.email, admin.role)
+    await this.updateRtHash(admin.id, tokens.refreshToken)
 
-	async logout(userId: number) {
-		await this.prisma.user.updateMany({
-			where: { id: userId, hashedRt: { not: null } },
-			data: { hashedRt: null },
-		})
-	}
+    return {
+      user: {
+        id: admin.id,
+        username: admin.username,
+        avatarPath: admin.avatarPath,
+        role: admin.role,
+      },
+      ...tokens,
+    }
+  }
 
-	async login(dto: AuthLoginDto): Promise<Tokens> {
-		const user = await this.prisma.user.findUnique({
-			where: { email: dto.email },
-		})
+  async refreshTokens(
+    userId: number,
+    rt: string
+  ): Promise<{ tokens: Tokens; role: Role }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } })
 
-		if (!user) throw new ForbiddenException('Пользователь не найден')
+    if (!user) throw new ForbiddenException('Пользователь не найден')
 
-		const isValidPassword = await bcrypt.compare(dto.password, user.hash)
+    const isValidRt = await bcrypt.compare(rt, user.hashedRt)
 
-		if (!isValidPassword) throw new ForbiddenException('Неверный пароль')
+    if (!isValidRt) throw new ForbiddenException('Ошибка токена')
 
-		const tokens = await this.getTokens(user.id, user.email)
-		await this.updateRtHash(user.id, tokens.refreshToken)
+    const tokens = await this.getTokens(user.id, user.email, user.role)
+    await this.updateRtHash(user.id, tokens.refreshToken)
 
-		return tokens
-	}
+    return {
+      tokens,
+      role: user.role,
+    }
+  }
 
-	async register(dto: AuthRegisterDto): Promise<Tokens> {
-		const isAlreadyUsedUsername = await this.prisma.user.findUnique({
-			where: { username: dto.username },
-		})
+  async logout(userId: number): Promise<LogoutResponse> {
+    await this.prisma.user.updateMany({
+      where: { id: userId, hashedRt: { not: null } },
+      data: { hashedRt: null },
+    })
 
-		if (isAlreadyUsedUsername)
-			throw new ForbiddenException('Имя пользователя занято')
+    return { loggedOut: 'Success' }
+  }
 
-		const isAlreadyUsedEmail = await this.prisma.user.findUnique({
-			where: { email: dto.email },
-		})
+  async login(dto: AuthLoginDto): Promise<AuthResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    })
 
-		if (isAlreadyUsedEmail) throw new ForbiddenException('Почта занята')
+    if (!user) throw new ForbiddenException('Пользователь не найден')
 
-		const salt = await bcrypt.genSalt(parseInt(this.config.get('BCRYPT_SALT')))
-		const hashedPassword = await bcrypt.hash(dto.password, salt)
+    const isValidPassword = await bcrypt.compare(dto.password, user.hash)
 
-		const newUser = await this.prisma.user.create({
-			data: { username: dto.username, email: dto.email, hash: hashedPassword },
-		})
+    if (!isValidPassword) throw new ForbiddenException('Неверный пароль')
 
-		const tokens = await this.getTokens(newUser.id, newUser.email)
-		await this.updateRtHash(newUser.id, tokens.refreshToken)
+    const tokens = await this.getTokens(user.id, user.email, user.role)
+    await this.updateRtHash(user.id, tokens.refreshToken)
 
-		return tokens
-	}
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        avatarPath: user.avatarPath,
+        role: user.role,
+      },
+      ...tokens,
+    }
+  }
 
-	async updateRtHash(userId: number, rt: string) {
-		const salt = await bcrypt.genSalt(parseInt(this.config.get('BCRYPT_SALT')))
-		const hash = await bcrypt.hash(rt, salt)
+  async register(dto: AuthRegisterDto): Promise<AuthResponse> {
+    const salt = await bcrypt.genSalt(parseInt(this.config.get('BCRYPT_SALT')))
+    const hashedPassword = await bcrypt.hash(dto.password, salt)
 
-		await this.prisma.user.update({
-			where: { id: userId },
-			data: { hashedRt: hash },
-		})
-	}
+    const newUser = await this.prisma.user.create({
+      data: { username: dto.username, email: dto.email, hash: hashedPassword },
+    })
 
-	async getTokens(userId: number, email: string): Promise<Tokens> {
-		const [at, rt] = await Promise.all([
-			this.jwt.signAsync(
-				{ sub: userId, email },
-				{
-					expiresIn: this.config.get('ACCESS_EXPIRES_IN'),
-					secret: this.config.get('JWT_ACCESS_SECRET'),
-				}
-			),
-			this.jwt.signAsync(
-				{ sub: userId, email },
-				{
-					expiresIn: this.config.get('REFRESH_EXPIRES_IN'),
-					secret: this.config.get('JWT_REFRESH_SECRET'),
-				}
-			),
-		])
+    const tokens = await this.getTokens(newUser.id, newUser.email, newUser.role)
+    await this.updateRtHash(newUser.id, tokens.refreshToken)
 
-		return {
-			accessToken: at,
-			refreshToken: rt,
-		}
-	}
+    return {
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        avatarPath: newUser.avatarPath,
+        role: newUser.role,
+      },
+      ...tokens,
+    }
+  }
+
+  async updateRtHash(userId: number, rt: string) {
+    const salt = await bcrypt.genSalt(parseInt(this.config.get('BCRYPT_SALT')))
+    const hash = await bcrypt.hash(rt, salt)
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { hashedRt: hash },
+    })
+  }
+
+  async getTokens(userId: number, email: string, role: Role): Promise<Tokens> {
+    const [at, rt] = await Promise.all([
+      this.jwt.signAsync(
+        { sub: userId, email, role },
+        {
+          expiresIn: this.config.get('ACCESS_EXPIRES_IN'),
+          secret: this.config.get('JWT_ACCESS_SECRET'),
+        }
+      ),
+      this.jwt.signAsync(
+        { sub: userId, email, role },
+        {
+          expiresIn: this.config.get('REFRESH_EXPIRES_IN'),
+          secret: this.config.get('JWT_REFRESH_SECRET'),
+        }
+      ),
+    ])
+
+    return {
+      accessToken: at,
+      refreshToken: rt,
+    }
+  }
 }

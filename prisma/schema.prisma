@@ -10,14 +10,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
-  id        Int      @unique @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  hash      String
-  hashedRt  String?
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  id         Int      @unique @default(autoincrement())
+  role       Role     @default(USER)
+  username   String   @unique
+  email      String   @unique
+  hash       String
+  hashedRt   String?
+  avatarPath String?
+  phone      String?
+  orders     Order[]
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
 
   @@map("users")
+}
+
+model Service {
+  id           Int         @unique @default(autoincrement())
+  title        String      @unique
+  prices       String[]
+  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime    @default(now())
+  RepairCard   RepairCard? @relation(fields: [repairCardId], references: [id], onDelete: Cascade)
+  repairCardId Int?
+  Order        Order[]
+
+  @@map("services")
+}
+
+model RepairCard {
+  id        Int       @unique @default(autoincrement())
+  slug      String    @unique
+  title     String    @unique
+  services  Service[]
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+
+  @@map("repairCards")
+}
+
+model Order {
+  id        Int      @unique @default(autoincrement())
+  comment   String?
+  status    String   @default("На рассмотрении")
+  User      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId Int
+
+  @@map("orders")
 }
