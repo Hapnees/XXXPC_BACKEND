@@ -14,8 +14,8 @@ import { AtGuard, RtGuard } from '../common/guards'
 import { Tokens } from './types/token.type'
 import { GetCurrentUser, GetCurrentUserId } from 'src/common/decorators'
 import { LogoutResponse } from './types/logout-response'
-import { ConfirmGuard } from 'src/common/guards/confirm.guard'
-import { GetCurrentUserData } from 'src/common/decorators/get-current-user-data.decorator'
+import { ConfirmGuard } from '../common/guards'
+import { GetCurrentUserData } from 'src/common/decorators'
 import { Role } from '@prisma/client'
 
 @Controller('auth')

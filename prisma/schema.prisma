@@ -13,6 +13,16 @@ datasource db {
 enum Role {
   USER
   ADMIN
+
+  @@map("roles")
+}
+
+enum Slug {
+  PC
+  LAPTOP
+  PHONE
+
+  @@map("slugs")
 }
 
 model User {
@@ -23,7 +33,7 @@ model User {
   hash       String
   hashedRt   String?
   avatarPath String?
-  phone      String?
+  phone      String?  @unique
   orders     Order[]
   updatedAt  DateTime @updatedAt
   createdAt  DateTime @default(now())
@@ -45,12 +55,15 @@ model Service {
 }
 
 model RepairCard {
-  id        Int       @unique @default(autoincrement())
-  slug      String    @unique
-  title     String    @unique
-  services  Service[]
-  updatedAt DateTime  @updatedAt
-  createdAt DateTime  @default(now())
+  id          Int       @unique @default(autoincrement())
+  title       String    @unique
+  description String
+  iconPath    String?
+  services    Service[]
+  menus       Menu[]
+  slug        Slug      @unique
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
 
   @@map("repairCards")
 }
@@ -67,4 +80,23 @@ model Order {
   serviceId Int
 
   @@map("orders")
+}
+
+model Menu {
+  id           Int         @unique @default(autoincrement())
+  title        String
+  paragraphs   Paragraph[]
+  RepairCard   RepairCard? @relation(fields: [repairCardId], references: [id], onDelete: Cascade)
+  repairCardId Int?
+
+  @@map("menus")
+}
+
+model Paragraph {
+  id     Int    @unique @default(autoincrement())
+  title  String
+  Menu   Menu?  @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  menuId Int?
+
+  @@map("paragraphs")
 }

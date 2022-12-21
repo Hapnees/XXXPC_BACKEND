@@ -1,6 +1,8 @@
 import { Role } from '@prisma/client'
 import {
   IsEmail,
+  IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
@@ -8,6 +10,10 @@ import {
 } from 'class-validator'
 
 export class UpdateUserDto {
+  @IsOptional()
+  @IsNumber()
+  id?: number
+
   @IsOptional()
   @MinLength(3, {
     message: 'Имя пользователя должно содержать минимум 3 символа',
@@ -45,5 +51,6 @@ export class UpdateUserDto {
   createdAt?: string
 
   @IsOptional()
-  role: Role
+  @IsEnum(Role)
+  role?: Role
 }

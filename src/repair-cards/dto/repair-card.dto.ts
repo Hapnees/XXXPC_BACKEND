@@ -1,11 +1,28 @@
-import { IsNotEmpty, IsString } from 'class-validator'
+import { Slug } from '@prisma/client'
+import { Type } from 'class-transformer'
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator'
+import { RepairCardMenuDto } from './menu.dto'
 
 export class RepairCardDto {
-	@IsString({ message: 'Название карточки ремонта должно быть строкой' })
-	@IsNotEmpty({ message: 'Название карточки ремонта не может быть пустым' })
-	title: string
+  @IsString({ message: 'Название карточки ремонта должно быть строкой' })
+  @IsNotEmpty({ message: 'Название карточки ремонта не может быть пустым' })
+  title: string
 
-	@IsString({ message: 'Слаг карточки ремонта должен быть строкой' })
-	@IsNotEmpty({ message: 'Слаг карточки ремонта не может быть пустым' })
-	slug: string
+  @IsString({ message: 'Описание карточки ремонта должно быть строкой' })
+  @IsNotEmpty({ message: 'Описание карточки ремонта не может быть пустым' })
+  description: string
+
+  slug: Slug
+
+  @IsOptional()
+  @IsArray({ message: 'Некорректный формат меню' })
+  @ValidateNested({ each: true })
+  @Type(() => RepairCardMenuDto)
+  menus?: RepairCardMenuDto[]
 }

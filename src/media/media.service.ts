@@ -3,46 +3,71 @@ import { ensureDir, existsSync, rmSync, writeFile } from 'fs-extra'
 import { fileNameParser } from 'src/utils/filename.parser'
 import { Response } from 'express'
 import { MediaResponse } from './types/media-response'
+import { PrismaService } from 'src/prisma/prisma.service'
 
 @Injectable()
 export class MediaService {
-	async uploadImage(
-		image: Express.Multer.File,
-		userId: number,
-		folder = 'other'
-	): Promise<MediaResponse> {
-		if (!image) throw new NotFoundException('Изображение не найдено')
+  constructor(private readonly prisma: PrismaService) {}
 
-		const path = `./files/uploads/id_${userId}/${folder}`
+  async uploadImage(
+    image: Express.Multer.File,
+    id: number,
+    folder = 'other'
+  ): Promise<MediaResponse> {
+    if (!image) throw new NotFoundException('Изображение не найдено')
 
-		if (folder !== 'other' && existsSync(path))
-			rmSync(path, { recursive: true })
+    let path = `./files/uploads`
 
-		await ensureDir(path)
+    if (folder === 'avatar') {
+      path = `./files/uploads/users/id_${id}/${folder}`
+    } else if (folder === 'icon') {
+      path = `./files/uploads/repair_cards/id_${id}/${folder}`
+    }
 
-		const { name, ext } = fileNameParser(image.originalname)
+    if (folder !== 'other' && existsSync(path))
+      rmSync(path, { recursive: true })
 
-		const fileName = `${name}${Date.now()}.${ext}`
+    await ensureDir(path)
 
-		await writeFile(`${path}/${fileName}`, image.buffer)
+    const { name, ext } = fileNameParser(image.originalname)
 
-		return {
-			url: `http://localhost:4000/api/media/${fileName}?userId=${userId}&folder=${folder}`,
-		}
-	}
+    const fileName = `${name}${Date.now()}.${ext}`
 
-	async getMedia(
-		fileName: string,
-		userId: number,
-		folder = 'other',
-		res: Response
-	): Promise<void> {
-		try {
-			await res.sendFile(fileName, {
-				root: `./files/uploads/id_${userId}/${folder}`,
-			})
-		} catch (e) {
-			throw new NotFoundException(e.message)
-		}
-	}
+    await writeFile(`${path}/${fileName}`, image.buffer)
+
+    if (folder === 'icon') {
+      await this.prisma.repairCard.update({
+        where: { id },
+        data: {
+          iconPath: `http://localhost:4000/api/media/${fileName}?id=${id}&folder=${folder}`,
+        },
+      })
+    }
+
+    return {
+      url: `http://localhost:4000/api/media/${fileName}?id=${id}&folder=${folder}`,
+    }
+  }
+
+  async getMedia(
+    fileName: string,
+    userId: number,
+    folder = 'other',
+    res: Response
+  ): Promise<void> {
+    try {
+      let optPath = ''
+      if (folder === 'avatar') {
+        optPath = 'users'
+      } else if (folder === 'icon') {
+        optPath = 'repair_cards'
+      }
+
+      await res.sendFile(fileName, {
+        root: `./files/uploads/${optPath}/id_${userId}/${folder}`,
+      })
+    } catch (e) {
+      throw new NotFoundException(e.message)
+    }
+  }
 }

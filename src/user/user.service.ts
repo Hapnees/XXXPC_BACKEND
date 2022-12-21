@@ -1,7 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
-  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
@@ -13,6 +11,8 @@ import { UpdateUserResponse } from './types/update-user-response'
 import { GetUserResponse } from './types/get-user-response'
 import { UpdateUserAdminArrayDto } from './dto/update-user-admin-array.dto'
 import { AlreadyUsedException } from 'src/common/exceptions/AlreadyUsedException'
+import { IError, IErrorGlobal } from './types/errors.interface'
+import { DeleteUserAdminDto } from './dto/delete-user-admin.dto'
 
 @Injectable()
 export class UserService {
@@ -21,75 +21,122 @@ export class UserService {
     private readonly config: ConfigService
   ) {}
 
+  async adminDeleteUsers(data: DeleteUserAdminDto) {
+    const ids = data.ids
+
+    await this.prisma.user.deleteMany({ where: { id: { in: ids } } })
+
+    return { message: 'Пользователи успешно удалены!' }
+  }
+
   async adminUpdateUsers(data: UpdateUserAdminArrayDto) {
     const currentData = data.data
+    let hashedPassword: string
+
+    const globalErrors: IErrorGlobal[] = []
+
     if (!currentData.length)
       throw new BadRequestException('Пустой массив изменений')
 
     for (const el of currentData) {
       const dto = el.changes
-      const user = await this.prisma.user.findUnique({ where: { id: el.id } })
-      if (!user)
-        throw new NotFoundException(`Пользователь с id ${el.id} не найден!`)
 
-      const salt = await bcrypt.genSalt(
-        parseInt(this.config.get('BCRYPT_SALT'))
-      )
-      const newHashedPassword = el.changes.password
-        ? await bcrypt.hash(el.changes.password, salt)
-        : user.hash
       const { password, ...resultDto } = dto
 
-      const errors: { msg: string; key: string; value: string; id: number }[] =
-        []
+      const errors: IError[] = []
 
-      if (el.changes.username) {
+      if (dto.username) {
         const IsUsernameAlreadyUsed = await this.prisma.user.findUnique({
-          where: { username: el.changes.username },
+          where: { username: dto.username },
         })
 
         if (IsUsernameAlreadyUsed)
           errors.push({
-            msg: `Имя пользователя ${el.changes.username} занято!`,
+            msg: `Имя пользователя ${dto.username} занято!`,
             key: 'username',
-            value: el.changes.username,
-            id: user.id,
+            value: dto.username,
           })
       }
 
-      if (el.changes.email) {
+      if (dto.email) {
         const isEmailAlreadyUsed = await this.prisma.user.findUnique({
-          where: { email: el.changes.email },
+          where: { email: dto.email },
         })
 
         if (isEmailAlreadyUsed) {
           errors.push({
-            msg: `Почта ${el.changes.email} занята!`,
+            msg: `Почта ${dto.email} занята!`,
             key: 'email',
-            value: el.changes.email,
-            id: user.id,
+            value: dto.email,
           })
         }
       }
 
-      if (errors.length) {
-        throw new AlreadyUsedException(errors)
+      if (dto.phone) {
+        const isPhoneAlreadyUsed = await this.prisma.user.findUnique({
+          where: { phone: dto.phone },
+        })
+
+        if (isPhoneAlreadyUsed) {
+          errors.push({
+            msg: `Номер телефона ${dto.phone} занят!`,
+            key: 'phone',
+            value: dto.phone,
+          })
+        }
       }
 
-      await this.prisma.user.update({
-        where: { id: el.id },
-        data: {
-          ...resultDto,
-          hash: newHashedPassword,
-        },
-      })
+      if (dto.password) {
+        const salt = await bcrypt.genSalt(
+          parseInt(this.config.get('BCRYPT_SALT'))
+        )
+        hashedPassword = await bcrypt.hash(dto.password, salt)
+      }
+
+      const user = await this.prisma.user.findUnique({ where: { id: el.id } })
+
+      if (!errors.length) {
+        if (user) {
+          hashedPassword = user.hash
+
+          await this.prisma.user.update({
+            where: { id: el.id },
+            data: {
+              ...resultDto,
+              hash: hashedPassword,
+            },
+          })
+        } else {
+          const { id, password, ...resultDto } = dto
+          await this.prisma.user.create({
+            data: {
+              ...resultDto,
+              hash: hashedPassword,
+            } as Required<UpdateUserDto> & {
+              hash: string
+            },
+          })
+        }
+      }
+
+      const globalError: IErrorGlobal = {
+        id: el.id,
+        errors,
+      }
+
+      if (errors.length) globalErrors.push(globalError)
     }
 
-    return { message: 'Данные обновлены!' }
+    if (globalErrors.length) throw new AlreadyUsedException(globalErrors)
+
+    return { message: 'Все данные обновлены!' }
   }
 
   async getUsers() {
-    const users = await this.prisma.user.findMany({ orderBy: { id: 'desc' } })
+    const users = await this.prisma.user.findMany({
+      orderBy: { id: 'desc' },
+      include: { _count: true },
+    })
 
     return users
   }

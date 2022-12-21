@@ -6,11 +6,14 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Post,
+  Delete,
 } from '@nestjs/common'
 import { User } from '@prisma/client'
 import { GetCurrentUserId } from 'src/common/decorators'
 import { AtGuard } from 'src/common/guards'
-import { AdminGuard } from 'src/common/guards/admin.guard'
+import { AdminGuard } from 'src/common/guards'
+import { DeleteUserAdminDto } from './dto/delete-user-admin.dto'
 import { UpdateUserAdminArrayDto } from './dto/update-user-admin-array.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { GetUserResponse } from './types/get-user-response'
@@ -20,6 +23,13 @@ import { UserService } from './user.service'
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Delete('delete/admin')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminGuard)
+  adminDeleteUsers(@Body() data: DeleteUserAdminDto) {
+    return this.userService.adminDeleteUsers(data)
+  }
 
   @Patch('update/admin')
   @UseGuards(AdminGuard)
