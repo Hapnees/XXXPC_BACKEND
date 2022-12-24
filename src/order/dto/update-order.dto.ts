@@ -7,4 +7,5 @@ export class UpdateOrderDto {
 
   status?: OrderStatus
   prices?: string[]
+  note?: string
 }

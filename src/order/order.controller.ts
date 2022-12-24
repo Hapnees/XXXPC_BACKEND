@@ -9,6 +9,7 @@ import {
   Query,
   Patch,
   Delete,
+  ParseIntPipe,
 } from '@nestjs/common'
 import { GetCurrentUserId } from 'src/common/decorators'
 import { AtGuard } from 'src/common/guards'
@@ -20,6 +21,11 @@ import { OrderService } from './order.service'
 @Controller('order')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
+
+  @Get('get/note')
+  getNote(@Query('id', new ParseIntPipe()) id: number) {
+    return this.orderService.getNote(id)
+  }
 
   @Delete('delete/admin')
   @UseGuards(AdminGuard)

@@ -8,6 +8,15 @@ import { OrderStatus } from './types/order.status'
 export class OrderService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getNote(id: number) {
+    const note = await this.prisma.order.findUnique({
+      where: { id },
+      select: { note: true },
+    })
+
+    return note
+  }
+
   async delete(ids: number[]) {
     await this.prisma.order.deleteMany({ where: { id: { in: ids } } })
 
