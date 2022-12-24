@@ -12,6 +12,18 @@ import { RepairCardDto } from './dto/repair-card.dto'
 export class RepairCardsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getUsedSlugs() {
+    const cards = await this.prisma.repairCard.findMany()
+
+    return { slugs: cards.map(el => el.slug) }
+  }
+
+  async adminDeleteRepairCard(ids: number[]) {
+    await this.prisma.repairCard.deleteMany({ where: { id: { in: ids } } })
+
+    return { message: 'Карточки ремонта успешно удалены!' }
+  }
+
   async adminGetRepairCardDetails(id: number) {
     const card = await this.prisma.repairCard.findUnique({
       where: { id },

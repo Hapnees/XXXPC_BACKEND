@@ -10,8 +10,9 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Delete,
 } from '@nestjs/common'
-import { RepairCard, Service, Slug } from '@prisma/client'
+import { Slug } from '@prisma/client'
 import { AdminGuard } from 'src/common/guards'
 import { RepairCardUpdateDto } from './dto/repair-card-update.dto'
 import { RepairCardDto } from './dto/repair-card.dto'
@@ -20,6 +21,18 @@ import { RepairCardsService } from './repair-cards.service'
 @Controller('repair')
 export class RepairCardsController {
   constructor(private readonly repairCardsService: RepairCardsService) {}
+
+  @Get('get/card/slugs')
+  @UseGuards(AdminGuard)
+  getUsedSlugs() {
+    return this.repairCardsService.getUsedSlugs()
+  }
+
+  @Delete('delete')
+  @UseGuards(AdminGuard)
+  adminDeleteRepairCard(@Body() ids: number[]) {
+    return this.repairCardsService.adminDeleteRepairCard(ids)
+  }
 
   @Get('get/card/:id')
   adminGetRepairCardDetails(@Param('id', new ParseIntPipe()) id: number) {

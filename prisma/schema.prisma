@@ -71,8 +71,9 @@ model RepairCard {
 model Order {
   id        Int      @unique @default(autoincrement())
   comment   String?
-  status    String   @default("На рассмотрении")
+  status    String   @default("PENDING")
   User      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prices    String[]
   userId    Int?
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
