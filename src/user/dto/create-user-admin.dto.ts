@@ -26,5 +26,5 @@ export class CreateUserAdminDto {
   phone?: string
 
   @IsOptional()
-  role?: Role
+  role: Role
 }

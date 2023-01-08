@@ -10,11 +10,14 @@ import {
   UseGuards,
   Delete,
   Patch,
+  Header,
 } from '@nestjs/common'
 import { AdminGuard } from 'src/common/guards/admin.guard'
+import { sortDirect } from 'src/order/types/order.category'
 import { ServiceDto } from './dto/service.dto'
 import { ServiceUpdateDto } from './dto/service.update.dto'
 import { ServiceService } from './service.service'
+import { sortTitles } from './types/service.category'
 
 @Controller('service')
 export class ServiceController {
@@ -36,8 +39,23 @@ export class ServiceController {
 
   @Get('get')
   @UseGuards(AdminGuard)
-  getServices(@Query('id') repairCardId?: string) {
-    return this.serviceService.getServices(parseInt(repairCardId))
+  @Header('X-total-count', '200')
+  getServices(
+    @Query('search') search: string,
+    @Query('st') sortTitle: sortTitles,
+    @Query('sd') sortDirect: sortDirect,
+    @Query('limit', new ParseIntPipe()) limit: number,
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('id') repairCardId?: string
+  ) {
+    return this.serviceService.getServices(
+      parseInt(repairCardId),
+      search,
+      sortTitle,
+      sortDirect,
+      limit,
+      page
+    )
   }
 
   @Get('/')

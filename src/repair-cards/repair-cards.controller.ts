@@ -46,8 +46,18 @@ export class RepairCardsController {
 
   @Get('get')
   @UseGuards(AdminGuard)
-  adminGetRepairCardsAll() {
-    return this.repairCardsService.adminGetRepairCardsAll()
+  adminGetRepairCardsAll(
+    @Query('search') search?: string,
+    @Query('limit', new ParseIntPipe()) limit?: number,
+    @Query('fs') filterSlug?: Slug,
+    @Query('page', new ParseIntPipe()) page?: number
+  ) {
+    return this.repairCardsService.adminGetRepairCardsAll(
+      search,
+      filterSlug,
+      limit,
+      page
+    )
   }
 
   @Patch('update')

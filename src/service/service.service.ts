@@ -3,31 +3,63 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { Service } from '@prisma/client'
+import { sortDirect } from 'src/order/types/order.category'
 import { PrismaService } from 'src/prisma/prisma.service'
-import { priceParser } from 'src/utils/price.parser'
+import { priceFormat } from 'src/utils/price.formatter'
 import { ServiceDto } from './dto/service.dto'
 import { ServiceUpdateDto } from './dto/service.update.dto'
+import { sortTitles } from './types/service.category'
+
+enum Mode {
+  INSENSETIVE = 'insensitive',
+  DEFAULT = 'default',
+}
+
+const serviceGetWhere = (search?: string) => ({
+  title: { contains: search, mode: Mode.INSENSETIVE },
+})
+
+const serviceGetOrderby = (st?: sortTitles, sd?: sortDirect) => {
+  if ([sortTitles.TITLE, sortTitles.PRICES].includes(st)) return { [st]: sd }
+
+  return { id: sortDirect.DESC }
+}
 
 @Injectable()
 export class ServiceService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getServices(id?: number) {
-    if (id) {
-      const services = await this.prisma.service.findMany({
-        where: { repairCardId: id },
-        include: { _count: true },
-      })
+  async getServices(
+    id?: number,
+    search?: string,
+    st?: sortTitles,
+    sd?: sortDirect,
+    limit = 15,
+    page = 1
+  ) {
+    const offset = limit * (page - 1)
+    const xTotalCount = parseInt(
+      await (await this.prisma.service.count()).toString()
+    )
 
-      return services
+    const resultServiceGetWhere = serviceGetWhere(search)
+
+    if (id) {
+      resultServiceGetWhere['repairCardId'] = id
     }
 
     const services = await this.prisma.service.findMany({
+      where: resultServiceGetWhere,
       include: { _count: true },
+      take: limit,
+      skip: offset,
+      orderBy: serviceGetOrderby(st, sd),
     })
 
-    return services
+    return {
+      data: services,
+      totalCount: xTotalCount,
+    }
   }
 
   async get(id: number) {
@@ -48,20 +80,8 @@ export class ServiceService {
 
     if (!service) throw new NotFoundException('Услуга не найдена!')
 
-    if (dto.prices) {
-      const data = dto.prices
-      if (data.length === 2) {
-        const max = Math.max(...data.map(el => priceParser(el)))
-        const min = Math.min(...data.map(el => priceParser(el)))
-        if (max === min) {
-          dto.prices = [data[0]]
-        } else {
-          const maxPriceStr = data.find(el => el.includes(max.toString()))
-          const minPriceStr = data.find(el => el.includes(min.toString()))
-          dto.prices = [minPriceStr, maxPriceStr]
-        }
-      }
-    }
+    // Форматируем цены
+    if (dto.prices) dto.prices = priceFormat(dto.prices)
 
     await this.prisma.service.update({ where: { id: dto.id }, data: dto })
 
@@ -97,7 +117,9 @@ export class ServiceService {
       onlyService.repairCardId = repairCard.id
     }
 
-    console.log(dto)
+    // Форматрируем цены
+    onlyService.prices = priceFormat(onlyService.prices)
+
     await this.prisma.service.create({ data: onlyService })
     return { message: 'Услуга успешно создана' }
   }

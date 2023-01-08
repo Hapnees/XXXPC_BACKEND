@@ -37,7 +37,6 @@ export class MediaController {
     @Query('id', new ParseIntPipe()) cardId: number,
     @Query('folder') folder?: string
   ): Promise<MediaResponse> {
-    console.log(cardId)
     return this.mediaService.uploadImage(image, cardId, folder)
   }
 

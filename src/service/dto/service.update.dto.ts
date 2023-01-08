@@ -4,7 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  Matches,
+  Min,
 } from 'class-validator'
 
 export class ServiceUpdateDto {
@@ -17,12 +17,7 @@ export class ServiceUpdateDto {
   title?: string
 
   @IsOptional()
-  @IsString({ each: true })
-  @IsNotEmpty({ each: true })
   @ArrayMaxSize(2, { message: 'Максимально можно ввести 2 цены' })
-  @Matches(/^\d+\s(руб)$/, {
-    each: true,
-    message: 'Некорректный формат цены',
-  })
-  prices?: string[]
+  @Min(0, { message: 'Цена должна быть больше 0', each: true })
+  prices?: number[]
 }

@@ -17,6 +17,8 @@ import { AdminGuard } from 'src/common/guards/admin.guard'
 import { CreateOrderDto } from './dto/create-order.dto'
 import { UpdateOrderDto } from './dto/update-order.dto'
 import { OrderService } from './order.service'
+import { OrderCategoryTitle, sortDirect } from './types/order.category'
+import { OrderStatus } from './types/order.status'
 
 @Controller('order')
 export class OrderController {
@@ -43,14 +45,46 @@ export class OrderController {
 
   @Get('get/admin')
   @UseGuards(AdminGuard)
-  getOrders(@Query('id') userId?: string) {
-    return this.orderService.getOrders(parseInt(userId))
+  getOrders(
+    @Query('search') search?: string,
+    @Query('id') userId?: string,
+    @Query('st') sortTitle?: 'price',
+    @Query('sd') sortDirect?: sortDirect,
+    @Query('fs') filterStatus?: OrderStatus,
+    @Query('limit', new ParseIntPipe()) limit?: number,
+    @Query('page', new ParseIntPipe()) page?: number
+  ) {
+    return this.orderService.getOrders(
+      parseInt(userId),
+      search,
+      sortTitle,
+      sortDirect,
+      filterStatus,
+      limit,
+      page
+    )
   }
 
   @Get('get')
   @UseGuards(AtGuard)
-  getByUser(@GetCurrentUserId() userId: number) {
-    return this.orderService.getByUser(userId)
+  getByUser(
+    @GetCurrentUserId() userId: number,
+    @Query('search') search?: string,
+    @Query('fs') filterStatus?: OrderStatus,
+    @Query('st') sortTitle?: OrderCategoryTitle,
+    @Query('sd') sortDirect?: sortDirect,
+    @Query('limit', new ParseIntPipe()) limit?: number,
+    @Query('page', new ParseIntPipe()) page?: number
+  ) {
+    return this.orderService.getByUser(
+      userId,
+      sortTitle,
+      sortDirect,
+      filterStatus,
+      search,
+      limit,
+      page
+    )
   }
 
   @Post('create')

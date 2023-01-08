@@ -3,10 +3,21 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { RepairCard, Service, Slug } from '@prisma/client'
+import { Slug } from '@prisma/client'
 import { PrismaService } from 'src/prisma/prisma.service'
 import { RepairCardUpdateDto } from './dto/repair-card-update.dto'
 import { RepairCardDto } from './dto/repair-card.dto'
+
+enum Mode {
+  INSENSETIVE = 'insensitive',
+  DEFAULT = 'default',
+}
+
+const repairCardGetWhere = (search?: string, filterSlug?: Slug) => {
+  const result = { title: { contains: search, mode: Mode.INSENSETIVE } }
+  if (filterSlug) result['slug'] = filterSlug
+  return result
+}
 
 @Injectable()
 export class RepairCardsService {
@@ -43,17 +54,35 @@ export class RepairCardsService {
   async getRepairCardsForPage() {
     const cards = await this.prisma.repairCard.findMany({
       include: { menus: { include: { paragraphs: true } } },
+      orderBy: { createdAt: 'desc' },
     })
 
     return cards
   }
 
-  async adminGetRepairCardsAll() {
+  async adminGetRepairCardsAll(
+    search?: string,
+    filterSlug?: Slug,
+    limit = 15,
+    page = 1
+  ) {
+    const xtotalCount = parseInt(
+      await (await this.prisma.repairCard.count()).toString()
+    )
+    const offset = limit * (page - 1)
+
     const cards = await this.prisma.repairCard.findMany({
+      where: repairCardGetWhere(search, filterSlug),
       include: { _count: true },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
     })
 
-    return cards
+    return {
+      data: cards,
+      totalCount: xtotalCount,
+    }
   }
 
   async adminUpdate(dto: RepairCardUpdateDto) {

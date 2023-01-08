@@ -39,18 +39,6 @@ export class UpdateUserDto {
   password?: string
 
   @IsOptional()
-  @IsString()
-  hashedRt?: string
-
-  @IsOptional()
-  @IsString()
-  updatedAt?: string
-
-  @IsOptional()
-  @IsString()
-  createdAt?: string
-
-  @IsOptional()
   @IsEnum(Role)
   role?: Role
 }
