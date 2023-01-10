@@ -130,7 +130,7 @@ export class UserService {
       skip: offset,
     })
 
-    return { data: this.resultUsers(users), totalCount: xtotalCount }
+    return { data: users, totalCount: xtotalCount }
   }
 
   async getProfile(userId: number): Promise<GetUserResponse> {
@@ -191,10 +191,17 @@ export class UserService {
     return { message: 'Профиль обновлён' }
   }
 
-  resultUsers = (users: User[]) =>
-    users.map(el => {
-      const { hashedRt, ...temp } = el
+  async updateOnline(userId: number, isOnline: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } })
 
-      return { ...temp, isOnline: !!hashedRt }
+    if (!user) throw new NotFoundException('Пользователь не найден')
+    console.log(isOnline)
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { isOnline },
     })
+
+    return { message: 'Онлайн обновлён' }
+  }
 }

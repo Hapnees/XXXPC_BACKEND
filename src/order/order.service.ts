@@ -21,9 +21,13 @@ const orderGetSelect = {
 }
 
 const orderGetWhere = (userId?: number, search?: string, fs?: OrderStatus) => {
-  const result = {
-    comment: { contains: search, mode: Mode.INSENSETIVE },
-  }
+  const result = userId
+    ? {
+        service: { title: { contains: search, mode: Mode.INSENSETIVE } },
+      }
+    : {
+        comment: { contains: search, mode: Mode.INSENSETIVE },
+      }
   if (userId) {
     result['userId'] = userId
   }
@@ -90,37 +94,10 @@ export class OrderService {
     limit = 15,
     page = 1
   ) {
-    const xTotalCount = parseInt((await this.prisma.order.count()).toString())
+    let xTotalCount = parseInt((await this.prisma.order.count()).toString())
     const offset = limit * (page - 1)
 
-    // if (id) {
-    //   const orders = await this.prisma.order.findMany({
-    //     where: { userId: id },
-    //     include: { service: { select: { _count: true, title: true } } },
-    //     take: limit,
-    //     skip: offset,
-    //   })
-
-    //   return {
-    //     data: orders,
-    //     totalCount: xTotalCount,
-    //   }
-    // } else if (search) {
-    //   const orders = await this.prisma.order.findMany({
-    //     where: { comment: { contains: search, mode: 'insensitive' } },
-    //     include: {
-    //       User: { select: { username: true } },
-    //       service: { select: { title: true } },
-    //     },
-    //     take: limit,
-    //     skip: offset,
-    //   })
-
-    //   return {
-    //     data: orders,
-    //     totalCount: xTotalCount,
-    //   }
-    // }
+    if (id) xTotalCount = await this.prisma.user.count({ where: { id } })
 
     const orders = await this.prisma.order.findMany({
       where: orderGetWhere(id, search, fs),

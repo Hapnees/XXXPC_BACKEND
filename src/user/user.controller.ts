@@ -73,4 +73,14 @@ export class UserController {
   createUser(@Body() dto: CreateUserAdminDto) {
     return this.userService.createUser(dto)
   }
+
+  @Post('online')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AtGuard)
+  updateOnline(
+    @GetCurrentUserId() id: number,
+    @Body() { isOnline }: { isOnline: boolean }
+  ) {
+    return this.userService.updateOnline(id, isOnline)
+  }
 }
