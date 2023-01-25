@@ -25,32 +25,22 @@ export class ChatController {
 		return this.chatService.sendChatRequest(dto, userId)
 	}
 
-	@Patch('accept')
-	@UseGuards(AdminGuard)
-	acceptChatRequest(
-		@Body() data: { chatId: string },
-		@GetCurrentUserId() masterId: number
-	) {
-		return this.chatService.acceptChatRequest(parseInt(data.chatId), masterId)
-	}
-
-	@Post('send/message')
-	@UseGuards(AtGuard)
-	sendMessage(
-		@GetCurrentUserId() userId: number,
-		@Body() data: { message: string; chatId: string }
-	) {
-		return this.chatService.sendUserMessage(
-			data.message,
-			userId,
-			parseInt(data.chatId)
-		)
-	}
+	// @Patch('accept')
+	// @UseGuards(AdminGuard)
+	// acceptChatRequest(
+	// 	@Body() data: { chatId: string },
+	// 	@GetCurrentUserId() masterId: number
+	// ) {
+	// 	return this.chatService.acceptChatRequest(parseInt(data.chatId), masterId)
+	// }
 
 	@Get('get')
 	@UseGuards(AtGuard)
-	getUserChat(@GetCurrentUserId() userId: number) {
-		return this.chatService.getUserChat(userId)
+	getUserChat(
+		@GetCurrentUserId() userId: number,
+		@Query('userIdFromAdmin') userIdFromAdmin: string
+	) {
+		return this.chatService.getUserChat(userId, parseInt(userIdFromAdmin))
 	}
 
 	@Get('get/chats')

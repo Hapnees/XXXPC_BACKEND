@@ -31,52 +31,18 @@ export class ChatService {
 			take: limit,
 			skip: offset,
 			include: {
-				user: { select: { username: true }, where: { role: Role.USER } },
-				Message: {
-					orderBy: { createdAt: 'asc' },
-					include: { user: { select: { role: true } } },
+				user: {
+					select: { username: true, id: true },
+					where: { role: Role.USER },
 				},
 			},
 		})
 		return chats
 	}
 
-	async acceptChatRequest(chatId: number, masterId: number) {
-		const chat = await this.prisma.chat.findUnique({ where: { id: chatId } })
-		if (!chat) throw new NotFoundException('Чат не найден')
-
-		if (chat.status === ChatStatus.ACCEPTED) return
-
-		const { username: masterName } = await this.prisma.user.findUnique({
-			where: { id: masterId },
-			select: { username: true },
-		})
-
-		await this.prisma.chat.update({
-			where: { id: chatId },
-			data: {
-				masterName,
-				status: ChatStatus.ACCEPTED,
-				user: { connect: { id: masterId } },
-			},
-		})
-
-		return { message: 'Запрос на чат принят' }
-	}
-
-	async sendUserMessage(message: string, userId: number, chatId: number) {
-		await this.prisma.message.create({
-			data: {
-				text: message,
-				Chat: { connect: { id: chatId } },
-				user: { connect: { id: userId } },
-			},
-		})
-	}
-
-	async getUserChat(userId: number) {
+	async getUserChat(userId: number, userIdFromAdmin: number) {
 		const chat = await this.prisma.user.findUnique({
-			where: { id: userId },
+			where: { id: userIdFromAdmin || userId },
 			select: {
 				chat: {
 					include: {

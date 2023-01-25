@@ -150,8 +150,8 @@ model Message {
   text      String
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
-  Chat      Chat?    @relation(fields: [chatId], references: [id])
+  Chat      Chat?    @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId    Int?
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
 }

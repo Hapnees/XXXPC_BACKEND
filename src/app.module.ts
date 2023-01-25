@@ -11,39 +11,39 @@ import { MailModule } from './mail/mail.module'
 import { MailerModule } from '@nestjs-modules/mailer'
 import { join } from 'path'
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter'
-import { NewsModule } from './news/news.module';
-import { ChatModule } from './chat/chat.module';
+import { NewsModule } from './news/news.module'
+import { ChatModule } from './chat/chat.module'
 
 @Module({
-  imports: [
-    MailerModule.forRoot({
-      transport: {
-        host: process.env.EMAIL_HOST,
-        port: 465,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD,
-        },
-      },
-      template: {
-        dir: join(__dirname, 'mail/templates'),
-        adapter: new HandlebarsAdapter(),
-        options: {
-          strict: true,
-        },
-      },
-    }),
-    ConfigModule.forRoot({ isGlobal: true }),
-    PrismaModule,
-    AuthModule,
-    ServiceModule,
-    RepairCardsModule,
-    UserModule,
-    MediaModule,
-    OrderModule,
-    MailModule,
-    NewsModule,
-    ChatModule,
-  ],
+	imports: [
+		MailerModule.forRoot({
+			transport: {
+				host: process.env.EMAIL_HOST,
+				port: 465,
+				auth: {
+					user: process.env.EMAIL_USER,
+					pass: process.env.EMAIL_PASSWORD,
+				},
+			},
+			template: {
+				dir: join(__dirname, 'mail/templates'),
+				adapter: new HandlebarsAdapter(),
+				options: {
+					strict: true,
+				},
+			},
+		}),
+		ConfigModule.forRoot({ isGlobal: true }),
+		PrismaModule,
+		AuthModule,
+		ServiceModule,
+		RepairCardsModule,
+		UserModule,
+		MediaModule,
+		OrderModule,
+		MailModule,
+		NewsModule,
+		ChatModule,
+	],
 })
 export class AppModule {}
