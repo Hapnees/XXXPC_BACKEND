@@ -54,7 +54,7 @@ export class RepairCardsService {
   async getRepairCardsForPage() {
     const cards = await this.prisma.repairCard.findMany({
       include: { menus: { include: { paragraphs: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     })
 
     return cards

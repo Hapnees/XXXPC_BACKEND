@@ -17,28 +17,47 @@ enum Role {
   @@map("roles")
 }
 
+enum ChatStatus {
+  PENDING
+  ACCEPTED
+
+  @@map("chatStatuses")
+}
+
 enum Slug {
   PC
   LAPTOP
   PHONE
+  RESTORE_DATA
+  SERVER
+  TABLET
+  TV
+  MONITOR
+  GPS
+  MONOBLOCK
+  HDD
+  SOFTWARE
 
   @@map("slugs")
 }
 
 model User {
-  id         Int      @unique @default(autoincrement())
-  role       Role     @default(USER)
-  username   String   @unique
-  email      String   @unique
+  id         Int       @unique @default(autoincrement())
+  role       Role      @default(USER)
+  username   String    @unique
+  email      String    @unique
   hash       String
   hashedRt   String?
   avatarPath String?
-  phone      String?  @unique
+  phone      String?   @unique
   orders     Order[]
-  isOnline   Boolean  @default(true)
-  updatedAt  DateTime @updatedAt
-  createdAt  DateTime @default(now())
+  isOnline   Boolean   @default(true)
+  chat       Chat[]
+  updatedAt  DateTime  @updatedAt
+  createdAt  DateTime  @default(now())
+  Message    Message[]
 
+  @@id([id])
   @@map("users")
 }
 
@@ -103,4 +122,36 @@ model Paragraph {
   menuId Int?
 
   @@map("paragraphs")
+}
+
+model News {
+  id        Int      @unique @default(autoincrement())
+  title     String   @unique
+  body      String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model Chat {
+  id         Int        @unique @default(autoincrement())
+  masterName String?
+  issue      String
+  status     ChatStatus @default(PENDING)
+  updatedAt  DateTime   @updatedAt
+  createdAt  DateTime   @default(now())
+  user       User[]
+  Message    Message[]
+
+  @@id([id])
+}
+
+model Message {
+  id        Int      @unique @default(autoincrement())
+  text      String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  Chat      Chat?    @relation(fields: [chatId], references: [id])
+  chatId    Int?
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
 }
