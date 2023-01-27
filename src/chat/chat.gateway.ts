@@ -1,13 +1,15 @@
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import {
+	ConnectedSocket,
 	MessageBody,
 	SubscribeMessage,
 	WebSocketGateway,
 	WebSocketServer,
 } from '@nestjs/websockets'
-import { ChatStatus } from '@prisma/client'
-import { Server } from 'socket.io'
+import { ChatStatus, Role } from '@prisma/client'
+import { Server, Socket } from 'socket.io'
 import { PrismaService } from 'src/prisma/prisma.service'
+import { ChatRequest } from './dto/chat-request.dto'
 
 interface Message {
 	text: string
@@ -19,6 +21,13 @@ interface Message {
 interface Accept {
 	chatId: number
 	masterId: number
+	role: Role
+}
+
+interface WaitChatRequest {
+	dto: ChatRequest
+	userId: number
+	role: Role
 }
 
 @WebSocketGateway(8001, { cors: '*' })
@@ -28,16 +37,58 @@ export class ChatGateway {
 
 	constructor(private readonly prisma: PrismaService) {}
 
+	@SubscribeMessage('chat-request')
+	handleChatRequest(
+		@MessageBody() data: WaitChatRequest,
+		@ConnectedSocket() socket: Socket
+	) {
+		socket.join(`reqeust_user_${data.userId}`)
+		this.sendChatRequest(data.dto, data.userId).then(() => {
+			this.server
+				.to(`reqeust_user_${data.userId}`)
+				.emit('chat-request', { isFullfield: true })
+			socket.leave(`reqeust_user_${data.userId}`)
+			this.server.emit('chat-request', { isSendedRequest: true })
+		})
+	}
+
+	@SubscribeMessage('join-room')
+	handleJoinRoom(
+		@MessageBody() chatId: number,
+		@ConnectedSocket() socket: Socket
+	) {
+		socket.join(`room_${chatId}`)
+	}
+
+	@SubscribeMessage('leave-room')
+	handleLeaveRoom(
+		@MessageBody() chatId: number,
+		@ConnectedSocket() socket: Socket
+	) {
+		socket.leave(`room_${chatId}`)
+	}
+
 	@SubscribeMessage('message')
 	handleMessage(@MessageBody() message: Message) {
-		this.server.emit('message', message)
+		this.server.to(`room_${message.chatId}`).emit('message', message)
 		this.sendMessage(message.text, message.userId, message.chatId)
 	}
 
-	@SubscribeMessage('accept')
-	handleAccept(@MessageBody() accept: Accept) {
-		this.server.emit('accept', { isAccepted: true })
-		this.acceptChatRequest(accept.chatId, accept.masterId)
+	@SubscribeMessage('chat-accept')
+	handleAccept(
+		@MessageBody() accept: Accept,
+		@ConnectedSocket() socket: Socket
+	) {
+		socket.join(`chat_accept_${accept.chatId}`)
+		console.log(accept.chatId)
+		if (accept.role === Role.ADMIN) {
+			this.acceptChatRequest(accept.chatId, accept.masterId).then(() => {
+				this.server
+					.to(`chat_accept_${accept.chatId}`)
+					.emit(`chat-accept`, { isAccepted: true })
+				socket.leave(`chat_accept_${accept.chatId}`)
+			})
+		}
 	}
 
 	private async sendMessage(message: string, userId: number, chatId: number) {
@@ -71,5 +122,19 @@ export class ChatGateway {
 		})
 
 		return { message: 'Запрос на чат принят' }
+	}
+
+	private async sendChatRequest(dto: ChatRequest, userId: number) {
+		const user = await this.prisma.user.findUnique({
+			where: { id: userId },
+			include: { _count: { select: { chat: true } } },
+		})
+
+		if (user._count.chat)
+			throw new BadRequestException('Запрос уже был отправлен')
+
+		await this.prisma.chat.create({
+			data: { issue: dto.issue, user: { connect: { id: userId } } },
+		})
 	}
 }

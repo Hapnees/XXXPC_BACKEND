@@ -11,18 +11,12 @@ import { ChatRequest } from './dto/chat-request.dto'
 export class ChatService {
 	constructor(private readonly prisma: PrismaService) {}
 
-	async sendChatRequest(dto: ChatRequest, userId: number) {
-		const user = await this.prisma.user.findUnique({
-			where: { id: userId },
-			include: { _count: { select: { chat: true } } },
+	async getChatRequestsCount() {
+		const count = await this.prisma.chat.count({
+			where: { status: ChatStatus.PENDING },
 		})
 
-		if (user._count.chat)
-			throw new BadRequestException('Запрос уже был отправлен')
-
-		await this.prisma.chat.create({
-			data: { issue: dto.issue, user: { connect: { id: userId } } },
-		})
+		return count
 	}
 
 	async getChats(limit = 15, page = 1) {

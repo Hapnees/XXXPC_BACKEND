@@ -16,23 +16,11 @@ import { ChatRequest } from './dto/chat-request.dto'
 export class ChatController {
 	constructor(private readonly chatService: ChatService) {}
 
-	@Post('send/request')
-	@UseGuards(AtGuard)
-	sendChatRequest(
-		@GetCurrentUserId() userId: number,
-		@Body() dto: ChatRequest
-	) {
-		return this.chatService.sendChatRequest(dto, userId)
+	@Get('get/chat-requests-count')
+	@UseGuards(AdminGuard)
+	getChatRequestsCount() {
+		return this.chatService.getChatRequestsCount()
 	}
-
-	// @Patch('accept')
-	// @UseGuards(AdminGuard)
-	// acceptChatRequest(
-	// 	@Body() data: { chatId: string },
-	// 	@GetCurrentUserId() masterId: number
-	// ) {
-	// 	return this.chatService.acceptChatRequest(parseInt(data.chatId), masterId)
-	// }
 
 	@Get('get')
 	@UseGuards(AtGuard)
