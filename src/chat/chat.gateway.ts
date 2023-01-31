@@ -80,7 +80,7 @@ export class ChatGateway {
 		@ConnectedSocket() socket: Socket
 	) {
 		socket.join(`chat_accept_${accept.chatId}`)
-		console.log(accept.chatId)
+
 		if (accept.role === Role.ADMIN) {
 			this.acceptChatRequest(accept.chatId, accept.masterId).then(() => {
 				this.server

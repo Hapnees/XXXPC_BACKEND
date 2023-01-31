@@ -192,7 +192,6 @@ export class UserService {
 		const user = await this.prisma.user.findUnique({ where: { id: userId } })
 
 		if (!user) throw new NotFoundException('Пользователь не найден')
-		console.log(isOnline)
 
 		await this.prisma.user.update({
 			where: { id: user.id },

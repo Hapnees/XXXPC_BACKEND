@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common'
+import {
+	Body,
+	Controller,
+	Get,
+	Patch,
+	Post,
+	Query,
+	UseGuards,
+} from '@nestjs/common'
 import { AdminGuard } from 'src/common/guards'
 import { CreateNewsDto } from './dto/create-news.dto'
 import { UpdateNewsDto } from './dto/update-news.dto'
@@ -21,7 +29,7 @@ export class NewsController {
 	}
 
 	@Get('get')
-	getNews() {
-		return this.newsService.get()
+	getNews(@Query('search') search?: string) {
+		return this.newsService.get(search)
 	}
 }

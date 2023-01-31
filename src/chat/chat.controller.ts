@@ -33,7 +33,11 @@ export class ChatController {
 
 	@Get('get/chats')
 	@UseGuards(AdminGuard)
-	getChats(@Query('limit') limit?: number, @Query('page') page?: number) {
-		return this.chatService.getChats(limit, page)
+	getChats(
+		@Query('limit') limit?: number,
+		@Query('page') page?: number,
+		@Query('search') search?: string
+	) {
+		return this.chatService.getChats(limit, page, search)
 	}
 }

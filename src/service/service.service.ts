@@ -37,10 +37,13 @@ export class ServiceService {
 		limit = 15,
 		page = 1
 	) {
-		const offset = limit * (page - 1)
-		let xTotalCount = parseInt((await this.prisma.service.count()).toString())
-
 		const resultServiceGetWhere = serviceGetWhere(search)
+		const offset = limit * (page - 1)
+		let xTotalCount = parseInt(
+			(
+				await this.prisma.service.count({ where: resultServiceGetWhere })
+			).toString()
+		)
 
 		if (id) {
 			resultServiceGetWhere['repairCardId'] = id

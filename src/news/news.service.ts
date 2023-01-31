@@ -45,8 +45,10 @@ export class NewsService {
 		return { message: 'Новость обновлена успешно' }
 	}
 
-	async get() {
-		const news = await this.prisma.news.findMany()
+	async get(search?: string) {
+		const news = await this.prisma.news.findMany({
+			where: { title: { contains: search } },
+		})
 
 		return news
 	}

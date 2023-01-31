@@ -19,9 +19,10 @@ export class ChatService {
 		return count
 	}
 
-	async getChats(limit = 15, page = 1) {
+	async getChats(limit = 15, page = 1, search?: string) {
 		const offset = limit * (page - 1)
 		const chats = await this.prisma.chat.findMany({
+			where: { user: { some: { username: { contains: search } } } },
 			take: limit,
 			skip: offset,
 			include: {
