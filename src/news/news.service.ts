@@ -28,6 +28,12 @@ export class NewsService {
 		return { message: 'Новость добавлена' }
 	}
 
+  async delete(newsIds: number[]){
+    await this.prisma.news.deleteMany({ where: {id: {in: newsIds }}})
+
+    return { message: 'Новости удалены' }
+  }
+
 	async update(dto: UpdateNewsDto) {
 		const news = await this.prisma.news.findUnique({ where: { id: dto.id } })
 

@@ -94,9 +94,16 @@ export class RepairCardsService {
 			skip: offset,
 		})
 
+		const usedSlugs = (
+			await this.prisma.repairCard.findMany({
+				select: { slug: true },
+			})
+		).map(el => el.slug)
+
 		return {
 			data: cards,
 			totalCount: xtotalCount,
+			usedSlugs,
 		}
 	}
 

@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Patch,
 	Post,
@@ -21,6 +22,12 @@ export class NewsController {
 	createNews(@Body() dto: CreateNewsDto) {
 		return this.newsService.create(dto)
 	}
+
+  @Delete('delete')
+	@UseGuards(AdminGuard)
+  deleteNews(@Body() newsIds: number[]){
+    return this.newsService.delete(newsIds)
+  }
 
 	@Patch('update')
 	@UseGuards(AdminGuard)
